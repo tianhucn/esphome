@@ -1,14 +1,14 @@
-#include "as5601.h"
+#include "as5600.h"
 #include "esphome/core/log.h"
 
 namespace esphome {
 namespace as5601 {
 
-static const char *TAG = "as5601";
+static const char *TAG = "as5600";
 
 
-void AS5601::dump_config() {
-    ESP_LOGCONFIG(TAG, "AS5601:");
+void AS5600::dump_config() {
+    ESP_LOGCONFIG(TAG, "AS5600:");
     ESP_LOGCONFIG(TAG, "  AB positions: %d", this->_ab_positions);
     ESP_LOGCONFIG(TAG, "  Zero position: %d", this->_zero_position);
     LOG_BINARY_SENSOR("  ", "Magnet Field Presence", this->presence_binarysensor);
@@ -17,46 +17,37 @@ void AS5601::dump_config() {
 }
 
 
-void AS5601::setup() {
-    ESP_LOGCONFIG(TAG, "Setting up AS5601...");
+void AS5600::setup() {
+    ESP_LOGCONFIG(TAG, "Setting up AS5600...");
 
-    auto status = this->read_status_byte();
+    int16_t status = this->read_status_byte();
     if (!status) {
-        ESP_LOGE(TAG, "Unable to get status from AS5601");
+        ESP_LOGE(TAG, "Unable to get status from AS5600");
         this->mark_failed();
     }
     
-    // Write configuration to sensor
+    ESP_LOGV(TAG, "Got AS5600 status %d", status);
     this->write_ab_resolution(this->_ab_positions);
     this->write_zero_position(this->_zero_position);
 
     // Initial sensor publishing
-    if (this->magnitude_sensor != nullptr) {
-        uint data = this->magnitude();
-        this->magnitude_sensor->publish_state(data);
-    }
-    if (this->orientation_sensor != nullptr) {
-        uint data = this->angle();
-        this->orientation_sensor->publish_state(data);
-    }
+    if (this->magnitude_sensor != nullptr) this->magnitude_sensor->publish_state(magnitude());
+    if (this->orientation_sensor != nullptr) this->orientation_sensor->publish_state(angle());
 }
 
 
-void AS5601::loop() {
-    if (this->presence_binarysensor != nullptr) {
-        bool data = this->presence();
-        this->presence_binarysensor->publish_state(data);
-    }
+void AS5600::loop() {
+    if (this->presence_binarysensor != nullptr) this->presence_binarysensor->publish_state(presence());
 
     // Publish any changes to the magnitude sensor if it is enabled
     if (this->magnitude_sensor != nullptr) {
-        uint data = this->magnitude();
+        uint data = magnitude();
         if (data != this->magnitude_sensor->get_raw_state()) this->magnitude_sensor->publish_state(data);
     }
 
     // Publish any changes to the orientation sensor if it is enabled
     if (this->orientation_sensor != nullptr) {
-        uint data = this->angle();
+        uint data = angle();
         if (data != this->orientation_sensor->get_raw_state()) this->orientation_sensor->publish_state(data);
     }
 }

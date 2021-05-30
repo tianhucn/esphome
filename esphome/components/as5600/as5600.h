@@ -1,12 +1,16 @@
 #pragma once
 
+#include "esphome/core/component.h"
 #include "esphome/components/as560x/as560x.h"
+#include "esphome/components/sensor/sensor.h"
+#include "esphome/components/binary_sensor/binary_sensor.h"
+#include "esphome/components/i2c/i2c.h"
 
 
 namespace esphome {
-namespace as5601 {
+namespace as5600 {
 
-class AS5601 : public as560x::AS560X {
+class AS5600 : public as560x::AS560X {
  public:
   void setup() override;
   void loop() override;
@@ -15,5 +19,5 @@ class AS5601 : public as560x::AS560X {
 };
 
 
-}  // namespace as5601
+}  // namespace as5600
 }  // namespace esphome

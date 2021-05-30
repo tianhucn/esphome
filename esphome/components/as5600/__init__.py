@@ -2,32 +2,26 @@ import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import i2c
 from esphome.const import CONF_ID
-
-
-CONF_AB_POSITIONS = "ab_positions"
-CONF_ORIENTATION_OFFSET = "orientation_offset"
-
-CONF_MAGNET_PRESENCE = "presence"
-CONF_MGF_MAGNITUDE = "magnitude"
-CONF_MGF_ORIENTATION = "orientation"
-
+from esphome.components.as560x import (
+    CONF_AB_POSITIONS,
+    CONF_ORIENTATION_OFFSET,
+)
 
 AUTO_LOAD = ["sensor", "binary_sensor"]
 DEPENDENCIES = ["i2c"]
 MULTI_CONF = True
 
 
-CONF_AS5601_ID = "as5601_id"
+CONF_AS5600_ID = "as5600_id"
 
-
-as5601_ns = cg.esphome_ns.namespace("as5601")
-AS5601 = as5601_ns.class_("AS5601", cg.Component, i2c.I2CDevice)
+as5600_ns = cg.esphome_ns.namespace("as5600")
+AS5600 = as5600_ns.class_("AS5600", cg.Component, i2c.I2CDevice)
 
 
 CONFIG_SCHEMA = (
     cv.Schema(
         {
-            cv.GenerateID(): cv.declare_id(AS5601),
+            cv.GenerateID(): cv.declare_id(AS5600),
             cv.Optional(CONF_AB_POSITIONS, default=8): cv.templatable(
                 cv.one_of(2048, 1024, 512, 256, 128, 64, 32, 16, 8)
             ),
@@ -56,13 +50,12 @@ i2c:
   scl: GPIO22
 
 
-as5601: # supports multiconf
-  ab_positions: 1024
-  orientation_offset: 0
+as5600:
+
 
 
 sensor:
-  - platform: as5601
+  - platform: as5600
     orientation:
       name: AS5601 Magnet Angle
     filters:
@@ -72,7 +65,7 @@ sensor:
 
 
 binary_sensor:
-  - platform: as5601
+  - platform: as5600
     id: ${hostid}_magnet_detected
     name: ${hostname} Magnet detected
 """
