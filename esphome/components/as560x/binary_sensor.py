@@ -1,19 +1,20 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import binary_sensor
-from . import AS5601, CONF_AS5601_ID
+from . import AS560X, CONF_AS560X_ID
 
-DEPENDENCIES = ["as5601"]
+
+DEPENDENCIES = ["as560x"]
 
 
 CONFIG_SCHEMA = binary_sensor.BINARY_SENSOR_SCHEMA.extend(
     {
-        cv.GenerateID(CONF_AS5601_ID): cv.use_id(AS5601),
+        cv.GenerateID(CONF_AS560X_ID): cv.use_id(AS560X),
     }
 )
 
 
 def to_code(config):
-    hub = yield cg.get_variable(config[CONF_AS5601_ID])
+    hub = yield cg.get_variable(config[CONF_AS560X_ID])
     var = yield binary_sensor.new_binary_sensor(config)
-    cg.add(hub.init_presence_sensor_(var))
+    cg.add(hub.set_presence_sensor_(var))

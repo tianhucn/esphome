@@ -11,18 +11,21 @@ namespace as560x {
 
 class AS560X : public Component, public i2c::I2CDevice {
  public:
+  void setup() override;
+  void loop() override;
+  void dump_config() override;
   float get_setup_priority() const override { return setup_priority::DATA; }
 
 
   // Initial config
-  void init_ab_positions(uint16_t positions) { this->_ab_positions = positions; };
-  void init_zero_position( uint angle ) { this->_zero_position = angle; };
+  void set_ab_positions(uint16_t positions) { this->_ab_positions = positions; };
+  void set_zero_position( uint angle ) { this->_zero_position = angle; };
 
 
   // Sensors
-  void init_presence_sensor_(binary_sensor::BinarySensor *sensor) { presence_binarysensor = sensor; }
-  void init_orientation_sensor_(sensor::Sensor *sensor) { orientation_sensor = sensor; }
-  void init_magnitude_sensor_(sensor::Sensor *sensor) { magnitude_sensor = sensor; }
+  void set_presence_sensor_(binary_sensor::BinarySensor *sensor) { presence_binarysensor = sensor; }
+  void set_orientation_sensor_(sensor::Sensor *sensor) { orientation_sensor = sensor; }
+  void set_magnitude_sensor_(sensor::Sensor *sensor) { magnitude_sensor = sensor; }
 
   binary_sensor::BinarySensor presence_sensor_() { return *presence_binarysensor; } 
   sensor::Sensor orientation_sensor_() { return *orientation_sensor; } 
@@ -34,7 +37,7 @@ class AS560X : public Component, public i2c::I2CDevice {
   void write_zero_position(uint16_t angle);
 
   // Device readings
-  auto read_status_byte();
+  int16_t read_status_byte();
   uint magnitude();
   uint angle();
   uint raw_angle();

@@ -22,10 +22,67 @@ static const uint8_t REGISTER_BURN = 0xFF;
 static const uint16_t REGISTER_MPOS = 0x03;
 static const uint16_t REGISTER_MANG = 0x05;
 
-// AS5601
+// AS560X
 static const uint8_t REGISTER_ABN = 0x09;
 static const uint8_t REGISTER_PUSHTHR = 0x0A;
 /** **/
+
+
+
+void AS560X::dump_config() {
+    ESP_LOGCONFIG(TAG, "AS560X:");
+    ESP_LOGCONFIG(TAG, "  AB positions: %d", this->_ab_positions);
+    ESP_LOGCONFIG(TAG, "  Zero position: %d", this->_zero_position);
+    LOG_BINARY_SENSOR("  ", "Magnet Field Presence", this->presence_binarysensor);
+    LOG_SENSOR("  ", "Magnet Field Orientation", this->orientation_sensor);
+    LOG_SENSOR("  ", "Magnet Field Magnitude", this->magnitude_sensor);
+}
+
+
+void AS560X::setup() {
+    ESP_LOGCONFIG(TAG, "Setting up AS560X...");
+
+    auto status = this->read_status_byte();
+    if (!status) {
+        ESP_LOGE(TAG, "Unable to get status from AS560X");
+        this->mark_failed();
+    }
+    
+    // Write configuration to sensor
+    this->write_ab_resolution(this->_ab_positions);
+    this->write_zero_position(this->_zero_position);
+
+    // Initial sensor publishing
+    if (this->magnitude_sensor != nullptr) {
+        uint data = this->magnitude();
+        this->magnitude_sensor->publish_state(data);
+    }
+    if (this->orientation_sensor != nullptr) {
+        uint data = this->angle();
+        this->orientation_sensor->publish_state(data);
+    }
+}
+
+
+void AS560X::loop() {
+    if (this->presence_binarysensor != nullptr) {
+        bool data = this->presence();
+        this->presence_binarysensor->publish_state(data);
+    }
+
+    // Publish any changes to the magnitude sensor if it is enabled
+    if (this->magnitude_sensor != nullptr) {
+        uint data = this->magnitude();
+        if (data != this->magnitude_sensor->get_raw_state()) this->magnitude_sensor->publish_state(data);
+    }
+
+    // Publish any changes to the orientation sensor if it is enabled
+    if (this->orientation_sensor != nullptr) {
+        uint data = this->angle();
+        if (data != this->orientation_sensor->get_raw_state()) this->orientation_sensor->publish_state(data);
+    }
+}
+
 
 
 
@@ -67,11 +124,14 @@ void AS560X::write_zero_position(uint16_t angle) {
 };
 
 
-auto AS560X::read_status_byte() { return this->read_byte( REGISTER_STATUS ); }
+int16_t AS560X::read_status_byte() {
+    auto status = this->read_byte( REGISTER_STATUS );
+    return (int16_t)(status ? status.value() : -1);
+}
 
 
 bool AS560X::presence() {
-    auto data = read_status_byte();
+    auto data = this->read_byte( REGISTER_STATUS );
     if (!data) return false; //this->mark_failed();
     return bitRead( data.value(), 5 ) == 1 ? true : false;
 }
