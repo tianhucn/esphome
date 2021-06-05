@@ -1,15 +1,15 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
 from esphome.components import binary_sensor
-from . import AS560X, CONF_AS560X_ID
 
+from . import AS560XComponent, CONF_AS560X_ID
 
 DEPENDENCIES = ["as560x"]
 
 
 CONFIG_SCHEMA = binary_sensor.BINARY_SENSOR_SCHEMA.extend(
     {
-        cv.GenerateID(CONF_AS560X_ID): cv.use_id(AS560X),
+        cv.GenerateID(CONF_AS560X_ID): cv.use_id(AS560XComponent),
     }
 )
 

@@ -9,35 +9,34 @@
 namespace esphome {
 namespace as560x {
 
-class AS560X : public Component, public i2c::I2CDevice {
+
+
+class AS560XComponent : public Component, public i2c::I2CDevice {
  public:
-  void setup() override;
+  AS560XComponent() = default;
+
+  void continue_common_setup();
   void loop() override;
-  void dump_config() override;
+  void dump_common_sensor_config();
   float get_setup_priority() const override { return setup_priority::DATA; }
-
-
-  // Initial config
-  void set_ab_positions(uint16_t positions) { this->_ab_positions = positions; };
-  void set_zero_position( uint angle ) { this->_zero_position = angle; };
-
 
   // Sensors
   void set_presence_sensor_(binary_sensor::BinarySensor *sensor) { presence_binarysensor = sensor; }
-  void set_orientation_sensor_(sensor::Sensor *sensor) { orientation_sensor = sensor; }
+  void set_angle_sensor_(sensor::Sensor *sensor) { angle_sensor = sensor; }
   void set_magnitude_sensor_(sensor::Sensor *sensor) { magnitude_sensor = sensor; }
-
   binary_sensor::BinarySensor presence_sensor_() { return *presence_binarysensor; } 
-  sensor::Sensor orientation_sensor_() { return *orientation_sensor; } 
+  sensor::Sensor angle_sensor_() { return *angle_sensor; } 
   sensor::Sensor magnitude_sensor_() { return *magnitude_sensor; }
- 
 
-  // Hardware access
-  void write_ab_resolution(uint16_t positions);
-  void write_zero_position(uint16_t angle);
+  // Common device configuration
+  void set_zero_position( uint value ) { this->_zero_position = value; };
+  void set_end_position( uint value ) { this->_end_position = value; };
+  void set_mang( uint value ) { this->_mang = value; };
+  void set_ab_resolution(uint16_t value) { this->_ab_resolution = value; };
+  void set_push_threshold( uint value ) { this->_push_threshold = value; }; 
 
-  // Device readings
-  int16_t read_status_byte();
+
+  // Common device readings
   uint magnitude();
   uint angle();
   uint raw_angle();
@@ -45,10 +44,23 @@ class AS560X : public Component, public i2c::I2CDevice {
   bool presence();
 
 
-  uint16_t _ab_positions, _zero_position;
-  binary_sensor::BinarySensor *presence_binarysensor;
-  sensor::Sensor *orientation_sensor, *magnitude_sensor;
+ protected:
+  int16_t read_status_byte();
+  bool device_online();
+  void write_ab_resolution(uint16_t positions);
+  void write_zero_position(uint16_t angle);
+
+  binary_sensor::BinarySensor *presence_binarysensor{nullptr};
+  sensor::Sensor *angle_sensor{nullptr};
+  sensor::Sensor *magnitude_sensor{nullptr};
+
+  uint16_t _ab_resolution;
+  uint16_t _zero_position;
+  uint16_t _push_threshold;
+  uint16_t _end_position;
+  uint16_t _mang;
 };
+
 
 
 }  // namespace as560x
