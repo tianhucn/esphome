@@ -15,25 +15,20 @@ CONF_AS5600 = "as5600"
 CONF_AS5601 = "as5601"
 CONF_AS560X_ID = f"{CONF_AS560X}_{CONF_ID}"
 
-CONF_DETECTED = "detected"
-CONF_MAGNITUDE = "magnitude"
-CONF_ANGLE = "angle"
-CONF_ZERO_POSITION = "zero_angle_position"
+
 CONF_AB_RESOLUTION = "ab_resolution"
 CONF_PUSH_THRESHOLD = "push_threshold"
-CONF_ANGLE_END_POSITION = "angle_end_position"
-CONF_MANG = "mang"
+CONF_ANGLE_ZERO_POSITION = "zero_angle_position"
+CONF_ANGLE_STOP_POSITION = "angle_stop_position"
+CONF_MAXIMUM_ANGLE = "maximum_angle"
 
 
 as560x_ns = cg.esphome_ns.namespace("as560x")
 AS560XComponent = as560x_ns.class_("AS560XComponent", cg.Component, i2c.I2CDevice)
-AS5600Component = as560x_ns.class_("AS5600Component", AS560XComponent)
-AS5601Component = as560x_ns.class_("AS5601Component", AS560XComponent)
 
 VARIANT_COMP = {
-    CONF_AS560X: AS560XComponent,
-    CONF_AS5600: AS5600Component,
-    CONF_AS5601: AS5601Component,
+    CONF_AS5600: as560x_ns.class_("AS5600Component", AS560XComponent),
+    CONF_AS5601: as560x_ns.class_("AS5601Component", AS560XComponent),
 }
 
 
@@ -53,14 +48,14 @@ def validate_config_and_set_defaults(config):
         for conf in [CONF_AB_RESOLUTION, CONF_PUSH_THRESHOLD]:
             if conf in config:
                 raise cv.Invalid(f"{conf} must not be specified with {CONF_AS5600}")
-        if CONF_ANGLE_END_POSITION not in config:
-            config[CONF_ANGLE_END_POSITION] = 4095
-        if CONF_MANG not in config:
-            config[CONF_MANG] = 0
+        if CONF_ANGLE_STOP_POSITION not in config:
+            config[CONF_ANGLE_STOP_POSITION] = 4095
+        if CONF_MAXIMUM_ANGLE not in config:
+            config[CONF_MAXIMUM_ANGLE] = 0
 
     # Validate AS5601
     if config[CONF_VARIANT] == CONF_AS5601:
-        for conf in [CONF_ANGLE_END_POSITION, CONF_MANG]:
+        for conf in [CONF_ANGLE_STOP_POSITION, CONF_MAXIMUM_ANGLE]:
             if conf in config:
                 raise cv.Invalid(f"{conf} must not be specified with {CONF_AS5600}")
         if CONF_AB_RESOLUTION not in config:
@@ -76,12 +71,12 @@ CONFIG_SCHEMA = cv.All(
         {
             cv.GenerateID(): cv.declare_id(AS560XComponent),
             cv.Required(CONF_VARIANT): cv.one_of(CONF_AS5600, CONF_AS5601, lower=True),
-            cv.Optional(CONF_ZERO_POSITION, default=0): cv.int_range(
+            cv.Optional(CONF_ANGLE_ZERO_POSITION, default=0): cv.int_range(
                 min=0, max=2 ** 12 - 1, min_included=True, max_included=False
             ),
             # AS5600
-            cv.Optional(CONF_ANGLE_END_POSITION): cv.int_,
-            cv.Optional(CONF_MANG): cv.int_,
+            cv.Optional(CONF_ANGLE_STOP_POSITION): cv.int_,
+            cv.Optional(CONF_MAXIMUM_ANGLE): cv.int_,
             # AS5601
             cv.Optional(CONF_AB_RESOLUTION): cv.one_of(
                 *[2 ** i for i in range(3, 12)]
@@ -96,15 +91,16 @@ CONFIG_SCHEMA = cv.All(
 )
 
 
-def to_code(config):
+async def to_code(config):
     var = cg.new_Pvariable(config[CONF_ID])
-    yield cg.register_component(var, config)
-    yield i2c.register_i2c_device(var, config)
+    await cg.register_component(var, config)
+    await i2c.register_i2c_device(var, config)
 
-    cg.add(var.set_zero_position(config[CONF_ZERO_POSITION]))
+    cg.add(var.set_zero_position(config[CONF_ANGLE_ZERO_POSITION]))
 
     if config[CONF_VARIANT] == CONF_AS5600:
-        pass
+        cg.add(var.set_stop_position(config[CONF_ANGLE_STOP_POSITION]))
+        cg.add(var.set_maximum_angle(config[CONF_MAXIMUM_ANGLE]))
 
     if config[CONF_VARIANT] == CONF_AS5601:
         cg.add(var.set_ab_resolution(config[CONF_AB_RESOLUTION]))
