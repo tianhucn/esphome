@@ -20,6 +20,7 @@ class AS5601Component : public AS560XComponent {
   void write_ab_resolution(uint16_t resolution);
   void write_push_threshold(uint16_t threshold);
 
+  uint16_t ab_resolution() { return this->ab_resolution_; }
 
  protected: 
   uint16_t ab_resolution_{8};
@@ -39,8 +40,10 @@ template<typename... Ts> class AS5601ConfigAction : public Action<Ts...>, public
     if (this->zero_position_.has_value()) 
       this->parent_->write_zero_position(this->zero_position_.value(x...));
 
-    if (this->ab_resolution_.has_value())
+    if (this->ab_resolution_.has_value()) {
+      ESP_LOGI("as5601", "Received new AB value %d", this->ab_resolution_.value(x...));
       this->parent_->write_ab_resolution(this->ab_resolution_.value(x...));
+    }
 
     if (this->push_threshold_.has_value())
       this->parent_->write_push_threshold(this->push_threshold_.value(x...));

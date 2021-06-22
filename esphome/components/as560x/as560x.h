@@ -10,10 +10,10 @@ namespace as560x {
 
 
 #define LOG_AS560X(this) \
-  ESP_LOGCONFIG(TAG, "  Zero position", this->zero_position_); \
-  LOG_SENSOR(TAG, "  Angle sensor", this->angle_sensor_); \
-  LOG_SENSOR(TAG, "  Magnitude sensor", this->magnitude_sensor_); \
-  LOG_BINARY_SENSOR(TAG, "  Magnet presence binary sensor", this->presence_binary_sensor_);
+  ESP_LOGCONFIG(TAG, "  Zero Position: %d", this->zero_position_); \
+  LOG_SENSOR("  ", "Angle Sensor", this->angle_sensor_); \
+  LOG_SENSOR("  ", "Magnitude Sensor", this->magnitude_sensor_); \
+  LOG_BINARY_SENSOR("  ", "Magnet Presence Binary Sensor", this->presence_binary_sensor_);
 
 
 class AS560XComponent : public Component, public i2c::I2CDevice {
@@ -32,8 +32,6 @@ class AS560XComponent : public Component, public i2c::I2CDevice {
   // Configuration setters and writers
   void set_zero_position( uint position ) { this->zero_position_ = position; };
   void write_zero_position(uint16_t position);
-
-  void update_device();
 
 
   // Device readings

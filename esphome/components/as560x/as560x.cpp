@@ -26,7 +26,7 @@ static const uint8_t REGISTER_BURN = 0xFF;
 // static const uint8_t REGISTER_PUSHTHR = 0x0A;
 /** **/
 
-static const char *TAG = "AS560X";
+static const char *TAG = "as560X";
 
 
 void AS560XComponent::setup() {
@@ -39,17 +39,17 @@ void AS560XComponent::common_setup() {
 }
 
 void AS560XComponent::loop() {
-    if (this->presence_binary_sensor_ != nullptr) 
-        this->presence_binary_sensor_->publish_state(presence());
+    if (this->presence_binary_sensor_ != nullptr) this->presence_binary_sensor_->publish_state(presence());
     
-    if (this->magnitude_sensor_ != nullptr)
-        if(uint data = magnitude() != this->magnitude_sensor_->get_raw_state())
-            this->magnitude_sensor_->publish_state(data);
+    if (this->magnitude_sensor_ != nullptr) {
+        uint data = magnitude();
+        if(data != this->magnitude_sensor_->get_raw_state()) this->magnitude_sensor_->publish_state(data);
+    }
 
-    if (this->angle_sensor_ != nullptr)
-        if (uint data = angle() != this->angle_sensor_->get_raw_state()) 
-            this->angle_sensor_->publish_state(data);
-
+    if (this->angle_sensor_ != nullptr) {
+        uint data = angle();
+        if (data != this->angle_sensor_->get_raw_state()) this->angle_sensor_->publish_state(data);
+    }
 }
 
 

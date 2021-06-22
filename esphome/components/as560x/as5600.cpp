@@ -9,10 +9,10 @@ static const uint16_t REGISTER_MPOS = 0x03;
 static const uint16_t REGISTER_MANG = 0x05;
 /** **/
 
-static const char *TAG = "AS5600";
+static const char *TAG = "as5600";
 
 void AS5600Component::dump_config() {
-    ESP_LOGCONFIG(TAG, "Setting up device:");
+    ESP_LOGCONFIG(TAG, "Setting up device...");
     ESP_LOGCONFIG(TAG, "  Angle Stop Position: %d", this->stop_position_);
     ESP_LOGCONFIG(TAG, "  Maximum Angle: %d", this->maximum_angle_);
     LOG_AS560X(this);
