@@ -3,66 +3,69 @@ import esphome.config_validation as cv
 from esphome.components import i2c
 from esphome.const import CONF_ID, CONF_VARIANT
 
+from esphome import automation
+
+
 CODEOWNERS = ["@slimcdk"]
 
 AUTO_LOAD = ["sensor", "binary_sensor"]
 DEPENDENCIES = ["i2c"]
 MULTI_CONF = True
 
-
-CONF_AS560X = "as560x"
-CONF_AS5600 = "as5600"
 CONF_AS5601 = "as5601"
-CONF_AS560X_ID = f"{CONF_AS560X}_{CONF_ID}"
-
-
+CONF_AS5600 = "as5600"
+CONF_AS560X_ID = "as560x_id"
+CONF_ANGLE_ZERO_POSITION = "zero_angle_position"
 CONF_AB_RESOLUTION = "ab_resolution"
 CONF_PUSH_THRESHOLD = "push_threshold"
-CONF_ANGLE_ZERO_POSITION = "zero_angle_position"
 CONF_ANGLE_STOP_POSITION = "angle_stop_position"
 CONF_MAXIMUM_ANGLE = "maximum_angle"
 
+_CONF_COMPONENT = "component"
+_CONF_CONFS_NOT_ALLOWED = "confs_not_allowed"
+
+
+SCHEMA_ANGLE_ZERO_POSITION = cv.int_range(
+    min=0, max=2 ** 12 - 1, min_included=True, max_included=False
+)
+SCHEMA_ANGLE_STOP_POSITION = cv.int_
+SCHEMA_MAXIMUM_ANGLE = cv.int_
+SCHEMA_AB_RESOLUTION = cv.one_of(*[2 ** i for i in range(3, 12)])  # 8,16,...,1024,2048
+SCHEMA_PUSH_THRESHOLD = cv.int_
 
 as560x_ns = cg.esphome_ns.namespace("as560x")
 AS560XComponent = as560x_ns.class_("AS560XComponent", cg.Component, i2c.I2CDevice)
+AS5600Component = as560x_ns.class_("AS5600Component", AS560XComponent)
+AS5601Component = as560x_ns.class_("AS5601Component", AS560XComponent)
 
-VARIANT_COMP = {
-    CONF_AS5600: as560x_ns.class_("AS5600Component", AS560XComponent),
-    CONF_AS5601: as560x_ns.class_("AS5601Component", AS560XComponent),
+AS5600ConfigAction = as560x_ns.class_("AS5600ConfigAction", automation.Action)
+AS5601ConfigAction = as560x_ns.class_("AS5601ConfigAction", automation.Action)
+
+
+VARIANT_COMP_MAP = {
+    CONF_AS5600: {
+        _CONF_COMPONENT: AS5600Component,
+        _CONF_CONFS_NOT_ALLOWED: [CONF_AB_RESOLUTION, CONF_PUSH_THRESHOLD],
+    },
+    CONF_AS5601: {
+        _CONF_COMPONENT: AS5601Component,
+        _CONF_CONFS_NOT_ALLOWED: [CONF_ANGLE_STOP_POSITION, CONF_MAXIMUM_ANGLE],
+    },
 }
 
 
 def set_variant_comp(config):
-    # Overwrite ID with appropriate as560x variant component
-    config[CONF_ID] = cv.declare_id(VARIANT_COMP[config[CONF_VARIANT]])(
-        config[CONF_ID].id
-    )
+    new_component = VARIANT_COMP_MAP[config[CONF_VARIANT]][_CONF_COMPONENT]
+    config[CONF_ID] = cv.declare_id(new_component)(config[CONF_ID].id)
     return config
 
 
-def validate_config_and_set_defaults(config):
-    # Keys will exist in the config dictonary and fail the validation if defaults are set in the CONFIG_SCHEMA instead of there
-
-    # Validate AS5600
-    if config[CONF_VARIANT] == CONF_AS5600:
-        for conf in [CONF_AB_RESOLUTION, CONF_PUSH_THRESHOLD]:
-            if conf in config:
-                raise cv.Invalid(f"{conf} must not be specified with {CONF_AS5600}")
-        if CONF_ANGLE_STOP_POSITION not in config:
-            config[CONF_ANGLE_STOP_POSITION] = 4095
-        if CONF_MAXIMUM_ANGLE not in config:
-            config[CONF_MAXIMUM_ANGLE] = 0
-
-    # Validate AS5601
-    if config[CONF_VARIANT] == CONF_AS5601:
-        for conf in [CONF_ANGLE_STOP_POSITION, CONF_MAXIMUM_ANGLE]:
-            if conf in config:
-                raise cv.Invalid(f"{conf} must not be specified with {CONF_AS5600}")
-        if CONF_AB_RESOLUTION not in config:
-            config[CONF_AB_RESOLUTION] = 8
-        if CONF_PUSH_THRESHOLD not in config:
-            config[CONF_PUSH_THRESHOLD] = 0
-
+def validate_variant_confs(config):
+    for conf in VARIANT_COMP_MAP[config[CONF_VARIANT]][_CONF_CONFS_NOT_ALLOWED]:
+        if conf in config:
+            raise cv.Invalid(
+                f"{conf} must not be specified with {config[CONF_VARIANT]}"
+            )
     return config
 
 
@@ -71,24 +74,88 @@ CONFIG_SCHEMA = cv.All(
         {
             cv.GenerateID(): cv.declare_id(AS560XComponent),
             cv.Required(CONF_VARIANT): cv.one_of(CONF_AS5600, CONF_AS5601, lower=True),
-            cv.Optional(CONF_ANGLE_ZERO_POSITION, default=0): cv.int_range(
-                min=0, max=2 ** 12 - 1, min_included=True, max_included=False
-            ),
+            cv.Optional(CONF_ANGLE_ZERO_POSITION): SCHEMA_ANGLE_ZERO_POSITION,
             # AS5600
-            cv.Optional(CONF_ANGLE_STOP_POSITION): cv.int_,
-            cv.Optional(CONF_MAXIMUM_ANGLE): cv.int_,
+            cv.Optional(CONF_ANGLE_STOP_POSITION): SCHEMA_ANGLE_STOP_POSITION,
+            cv.Optional(CONF_MAXIMUM_ANGLE): SCHEMA_MAXIMUM_ANGLE,
             # AS5601
-            cv.Optional(CONF_AB_RESOLUTION): cv.one_of(
-                *[2 ** i for i in range(3, 12)]
-            ),  # 8,16,...,1024,2048
-            cv.Optional(CONF_PUSH_THRESHOLD): cv.int_,
+            cv.Optional(CONF_AB_RESOLUTION): SCHEMA_AB_RESOLUTION,
+            cv.Optional(CONF_PUSH_THRESHOLD): SCHEMA_PUSH_THRESHOLD,
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
     .extend(i2c.i2c_device_schema(0x36)),
     set_variant_comp,
-    validate_config_and_set_defaults,
+    validate_variant_confs,
 )
+
+
+@automation.register_action(
+    "as5600.config",
+    AS5600ConfigAction,
+    automation.maybe_simple_id(
+        {
+            cv.GenerateID(): cv.use_id(AS5600Component),
+            cv.Optional(CONF_ANGLE_ZERO_POSITION): cv.templatable(
+                SCHEMA_ANGLE_ZERO_POSITION
+            ),
+            cv.Optional(CONF_ANGLE_STOP_POSITION): cv.templatable(
+                SCHEMA_ANGLE_STOP_POSITION
+            ),
+            cv.Optional(CONF_MAXIMUM_ANGLE): cv.templatable(SCHEMA_MAXIMUM_ANGLE),
+        }
+    ),
+)
+async def as5600_config_to_code(config, action_id, template_arg, args):
+    var = cg.new_Pvariable(action_id, template_arg)
+    await cg.register_parented(var, config[CONF_ID])
+    if CONF_ANGLE_ZERO_POSITION in config:
+        template_ = await cg.templatable(
+            config[CONF_ANGLE_ZERO_POSITION], args, cg.uint16
+        )
+        cg.add(var.set_zero_position(template_))
+    if CONF_ANGLE_STOP_POSITION in config:
+        template_ = await cg.templatable(
+            config[CONF_ANGLE_STOP_POSITION], args, cg.uint16
+        )
+        cg.add(var.set_stop_position(template_))
+    if CONF_ANGLE_STOP_POSITION in config:
+        template_ = await cg.templatable(
+            config[CONF_ANGLE_STOP_POSITION], args, cg.uint16
+        )
+        cg.add(var.set_maximum_angle(template_))
+    return var
+
+
+@automation.register_action(
+    "as5601.config",
+    AS5601ConfigAction,
+    automation.maybe_simple_id(
+        {
+            cv.GenerateID(): cv.use_id(AS5601Component),
+            cv.Optional(CONF_ANGLE_ZERO_POSITION): cv.templatable(
+                CONF_ANGLE_ZERO_POSITION
+            ),
+            cv.Optional(CONF_AB_RESOLUTION): cv.templatable(SCHEMA_AB_RESOLUTION),
+            cv.Optional(CONF_PUSH_THRESHOLD): cv.templatable(SCHEMA_PUSH_THRESHOLD),
+        }
+    ),
+)
+async def as5601_config_to_code(config, action_id, template_arg, args):
+    var = cg.new_Pvariable(action_id, template_arg)
+    await cg.register_parented(var, config[CONF_ID])
+    if CONF_ANGLE_ZERO_POSITION in config:
+        template_ = await cg.templatable(
+            config[CONF_ANGLE_ZERO_POSITION], args, cg.uint16
+        )
+        cg.add(var.set_zero_position(template_))
+    if CONF_AB_RESOLUTION in config:
+        template_ = await cg.templatable(config[CONF_AB_RESOLUTION], args, cg.uint16)
+        cg.add(var.set_ab_resolution(template_))
+    if CONF_PUSH_THRESHOLD in config:
+        template_ = await cg.templatable(config[CONF_PUSH_THRESHOLD], args, cg.uint16)
+        cg.add(var.set_push_threshold(template_))
+    return var
 
 
 async def to_code(config):
@@ -96,72 +163,54 @@ async def to_code(config):
     await cg.register_component(var, config)
     await i2c.register_i2c_device(var, config)
 
-    cg.add(var.set_zero_position(config[CONF_ANGLE_ZERO_POSITION]))
+    if CONF_ANGLE_ZERO_POSITION in config:
+        cg.add(var.set_zero_position(config[CONF_ANGLE_ZERO_POSITION]))
 
     if config[CONF_VARIANT] == CONF_AS5600:
-        cg.add(var.set_stop_position(config[CONF_ANGLE_STOP_POSITION]))
-        cg.add(var.set_maximum_angle(config[CONF_MAXIMUM_ANGLE]))
+        if CONF_ANGLE_STOP_POSITION in config:
+            cg.add(var.set_stop_position(config[CONF_ANGLE_STOP_POSITION]))
+        if CONF_ANGLE_STOP_POSITION in config:
+            cg.add(var.set_maximum_angle(config[CONF_ANGLE_STOP_POSITION]))
 
     if config[CONF_VARIANT] == CONF_AS5601:
-        cg.add(var.set_ab_resolution(config[CONF_AB_RESOLUTION]))
-        cg.add(var.set_push_threshold(config[CONF_PUSH_THRESHOLD]))
+        if CONF_AB_RESOLUTION in config:
+            cg.add(var.set_ab_resolution(config[CONF_AB_RESOLUTION]))
+        if CONF_PUSH_THRESHOLD in config:
+            cg.add(var.set_push_threshold(config[CONF_PUSH_THRESHOLD]))
 
 
 """ Example configuration
-i2c:
-  - id: as5600_i2c_bus
-    sda: GPIO21
-    scl: GPIO22
+esphome:
+  on_boot:
+    - as5601.config:
+        ab_resolution: 2048
 
-  - id: as5601_i2c_bus
-    sda: GPIO23
-    scl: GPIO24
+i2c:
+    sda: GPIO16
+    scl: GPIO17
 
 
 as560x:
-  - id: main_as5600
-    variant: as5600
-    i2c_id: as5600_i2c_bus
-
   - id: main_as5601
     variant: as5601
     ab_resolution: 1024
     zero_angle_position: 0
-    i2c_id: as5601_i2c_bus
 
 
 sensor:
   - platform: as560x
-    as5600_id: main_as5600
-    orientation:
+    as560x_id: main_as5601
+    angle:
         name: AS5600 Magnet Angle
         id: as5600_magnet_angle
-        filters:
-          - lambda: return x / 4096 * 360;
     magnitude:
         id: as5600_magnet_field_strength
         name: AS5600 Magnet Field Strength
 
-  - platform: as560x
-    as5601_id: main_as5601
-    orientation:
-        name: AS5601 Magnet Angle
-        id: as5601_magnet_angle
-        filters:
-          - lambda: return x / 4096 * 360;
-    magnitude:
-        id: as5601_magnet_field_strength
-        name: AS5601 Magnet Field Strength
-
 
 binary_sensor:
   - platform: as560x
-    as5600_id: main_as5600
+    as560x_id: main_as5601
     id: as5600_magnet_detected
     name: AS5600 Magnet detected
-
-  - platform: as560x
-    as5601_id: main_as5601
-    id: as5601_magnet_detected
-    name: AS5601 Magnet detected
 """

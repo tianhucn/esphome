@@ -26,40 +26,36 @@ static const uint8_t REGISTER_BURN = 0xFF;
 // static const uint8_t REGISTER_PUSHTHR = 0x0A;
 /** **/
 
-static const char *TAG = "as560x";
+static const char *TAG = "AS560X";
 
 
-void AS560XComponent::dump_common_sensor_config() {
-    LOG_BINARY_SENSOR("  ", "Magnet Detection Sensor", this->presence_binarysensor);
-    LOG_SENSOR("  ", "Magnet Angle Sensor", this->angle_sensor);
-    LOG_SENSOR("  ", "Magnet Field Strength Sensor", this->magnitude_sensor);
-};
-
-void AS560XComponent::continue_common_setup() {
-
-    // Common device config
-    this->write_zero_position(this->_zero_position);
+void AS560XComponent::setup() {
+    common_setup();
 }
 
+void AS560XComponent::common_setup() {
+    // Common device config
+    this->write_zero_position(this->zero_position_);
+}
 
 void AS560XComponent::loop() {
-    if (this->presence_binarysensor != nullptr) this->presence_binarysensor->publish_state(presence());
+    if (this->presence_binary_sensor_ != nullptr) 
+        this->presence_binary_sensor_->publish_state(presence());
     
-    if (this->magnitude_sensor != nullptr) {
-        uint data = magnitude();
-        if (data != this->magnitude_sensor->get_raw_state()) this->magnitude_sensor->publish_state(data);
-    }
-    
-    if (this->angle_sensor != nullptr) {
-        uint data = angle();
-        if (data != this->angle_sensor->get_raw_state()) this->angle_sensor->publish_state(data);
-    }
+    if (this->magnitude_sensor_ != nullptr)
+        if(uint data = magnitude() != this->magnitude_sensor_->get_raw_state())
+            this->magnitude_sensor_->publish_state(data);
+
+    if (this->angle_sensor_ != nullptr)
+        if (uint data = angle() != this->angle_sensor_->get_raw_state()) 
+            this->angle_sensor_->publish_state(data);
+
 }
+
 
 void AS560XComponent::write_zero_position(uint16_t position) {
     if (!this->write_byte_16(REGISTER_ZPOS, position)) return;
-    this->_zero_position = position; // Do not set if write failed
-    delayMicroseconds(1000); // Wait 1ms according to datasheet
+    this->zero_position_ = position;
 };
 
 
@@ -84,7 +80,7 @@ bool AS560XComponent::presence() {
 
 uint16_t AS560XComponent::magnitude() {
     uint16_t data;
-    if (!this->read_byte_16( REGISTER_MAGNITUDE, &data )) return this->magnitude_sensor->get_raw_state();
+    if (!this->read_byte_16( REGISTER_MAGNITUDE, &data )) return this->magnitude_sensor_->get_raw_state();
     return data;
 }
 
@@ -98,7 +94,7 @@ uint16_t AS560XComponent::raw_angle() {
 
 uint16_t AS560XComponent::angle() {
     uint16_t data;
-    if (!this->read_byte_16( REGISTER_ANGLE, &data )) return this->angle_sensor->get_raw_state();
+    if (!this->read_byte_16( REGISTER_ANGLE, &data )) return this->angle_sensor_->get_raw_state();
     return data;
 }
 

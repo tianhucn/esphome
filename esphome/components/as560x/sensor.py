@@ -31,8 +31,8 @@ async def to_code(config):
 
     if CONF_MAGNITUDE in config:
         sens = await sensor.new_sensor(config[CONF_MAGNITUDE])
-        cg.add(hub.set_magnitude_sensor_(sens))
+        cg.add(hub.set_magnitude_sensor(sens))
 
     if CONF_ANGLE in config:
         sens = await sensor.new_sensor(config[CONF_ANGLE])
-        cg.add(hub.set_angle_sensor_(sens))
+        cg.add(hub.set_angle_sensor(sens))

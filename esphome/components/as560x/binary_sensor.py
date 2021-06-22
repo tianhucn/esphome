@@ -15,4 +15,4 @@ CONFIG_SCHEMA = binary_sensor.BINARY_SENSOR_SCHEMA.extend(
 async def to_code(config):
     hub = await cg.get_variable(config[CONF_AS560X_ID])
     var = await binary_sensor.new_binary_sensor(config)
-    cg.add(hub.set_presence_sensor_(var))
+    cg.add(hub.set_presence_binary_sensor(var))
