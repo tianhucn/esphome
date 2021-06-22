@@ -24,13 +24,17 @@ class AS560XComponent : public Component, public i2c::I2CDevice {
   void loop() override;
   void setup() override;
 
-  // Configuration setters
-  void set_zero_position( uint position ) { this->zero_position_ = position; };
   void set_presence_binary_sensor(binary_sensor::BinarySensor *binary_sensor) { this->presence_binary_sensor_ = binary_sensor; }
   void set_angle_sensor(sensor::Sensor *sensor) { this->angle_sensor_ = sensor; }
   void set_magnitude_sensor(sensor::Sensor *sensor) { this->magnitude_sensor_ = sensor; }
 
+
+  // Configuration setters and writers
+  void set_zero_position( uint position ) { this->zero_position_ = position; };
+  void write_zero_position(uint16_t position);
+
   void update_device();
+
 
   // Device readings
   uint16_t magnitude();
@@ -41,10 +45,8 @@ class AS560XComponent : public Component, public i2c::I2CDevice {
 
  protected:
   void common_setup();
-
   int16_t read_status_byte();
   bool is_device_online();
-  void write_zero_position(uint16_t position);
 
   binary_sensor::BinarySensor *presence_binary_sensor_{nullptr};
   sensor::Sensor *angle_sensor_{nullptr};
@@ -52,7 +54,6 @@ class AS560XComponent : public Component, public i2c::I2CDevice {
 
   uint16_t zero_position_{0};
 };
-
 
 
 }  // namespace as560x

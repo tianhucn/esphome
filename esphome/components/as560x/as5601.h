@@ -1,6 +1,7 @@
 #pragma once
 
 #include "esphome/core/component.h"
+#include "esphome/core/automation.h"
 #include "as560x.h"
 
 namespace esphome {
@@ -13,15 +14,14 @@ class AS5601Component : public AS560XComponent {
   void dump_config() override;
   void setup() override;
 
+  // Configuration setters and writers
   void set_ab_resolution(uint16_t value) { this->ab_resolution_ = value; };
   void set_push_threshold(uint value ) { this->push_threshold_ = value; };
-
-  void update_device();
-
- protected: 
   void write_ab_resolution(uint16_t resolution);
   void write_push_threshold(uint16_t threshold);
 
+
+ protected: 
   uint16_t ab_resolution_{8};
   uint16_t push_threshold_{0};
 };
@@ -29,7 +29,7 @@ class AS5601Component : public AS560XComponent {
 
 template<typename... Ts> class AS5601ConfigAction : public Action<Ts...>, public Parented<AS5601Component> {
  public:
-  explicit AS5601ConfigAction(AS5601Component *parent) : parent_(parent) {}
+  // explicit AS5601ConfigAction(AS5601Component *parent) : parent_(parent) {}
 
   TEMPLATABLE_VALUE(uint16_t, zero_position)
   TEMPLATABLE_VALUE(uint16_t, ab_resolution)
@@ -53,8 +53,3 @@ template<typename... Ts> class AS5601ConfigAction : public Action<Ts...>, public
 
 } // as560x
 } // as5600
-
-
-
-
-

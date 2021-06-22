@@ -1,6 +1,7 @@
 #pragma once
 
 #include "esphome/core/component.h"
+#include "esphome/core/automation.h"
 #include "as560x.h"
 
 namespace esphome {
@@ -13,11 +14,12 @@ class AS5600Component : public AS560XComponent {
   void dump_config() override;
   void setup() override;
 
+  // Configuration setters and writers
   void set_stop_position( uint value ) { this->stop_position_ = value; };
   void set_maximum_angle( uint value ) { this->maximum_angle_ = value; };
-  
   void write_stop_position(uint16_t position);
   void write_maximum_angle(uint16_t angle);
+
 
  protected:
   uint16_t stop_position_{4095};
@@ -26,7 +28,7 @@ class AS5600Component : public AS560XComponent {
 
 template<typename... Ts> class AS5600ConfigAction : public Action<Ts...>, public Parented<AS5600Component> {
  public:
-  explicit AS5600ConfigAction(AS5600Component *parent) : parent_(parent) {}
+  // explicit AS5600ConfigAction(AS5600Component *parent) : parent_(parent) {}
 
   TEMPLATABLE_VALUE(uint16_t, zero_position)
   TEMPLATABLE_VALUE(uint16_t, stop_position)
