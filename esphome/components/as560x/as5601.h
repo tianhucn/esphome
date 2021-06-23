@@ -37,7 +37,7 @@ template<typename... Ts> class AS5601ConfigAction : public Action<Ts...>, public
   TEMPLATABLE_VALUE(uint16_t, push_threshold)
 
   void play(Ts... x) override {
-    if (this->zero_position_.has_value()) 
+    if (this->zero_position_.has_value())
       this->parent_->write_zero_position(this->zero_position_.value(x...));
 
     if (this->ab_resolution_.has_value()) {
