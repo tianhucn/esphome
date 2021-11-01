@@ -7,7 +7,6 @@ from esphome.const import (
     CONF_RESOLUTION,
     CONF_MIN_VALUE,
     CONF_MAX_VALUE,
-    DEVICE_CLASS_EMPTY,
     STATE_CLASS_NONE,
     UNIT_STEPS,
     ICON_ROTATE_RIGHT,
@@ -28,6 +27,7 @@ RESOLUTIONS = {
 CONF_PIN_RESET = "pin_reset"
 CONF_ON_CLOCKWISE = "on_clockwise"
 CONF_ON_ANTICLOCKWISE = "on_anticlockwise"
+CONF_PUBLISH_INITIAL_VALUE = "publish_initial_value"
 
 RotaryEncoderSensor = rotary_encoder_ns.class_(
     "RotaryEncoderSensor", sensor.Sensor, cg.Component
@@ -50,29 +50,28 @@ def validate_min_max_value(config):
         max_val = config[CONF_MAX_VALUE]
         if min_val >= max_val:
             raise cv.Invalid(
-                "Max value {} must be smaller than min value {}"
-                "".format(max_val, min_val)
+                f"Max value {max_val} must be smaller than min value {min_val}"
             )
     return config
 
 
 CONFIG_SCHEMA = cv.All(
     sensor.sensor_schema(
-        UNIT_STEPS, ICON_ROTATE_RIGHT, 0, DEVICE_CLASS_EMPTY, STATE_CLASS_NONE
+        unit_of_measurement=UNIT_STEPS,
+        icon=ICON_ROTATE_RIGHT,
+        accuracy_decimals=0,
+        state_class=STATE_CLASS_NONE,
     )
     .extend(
         {
             cv.GenerateID(): cv.declare_id(RotaryEncoderSensor),
-            cv.Required(CONF_PIN_A): cv.All(
-                pins.internal_gpio_input_pin_schema, pins.validate_has_interrupt
-            ),
-            cv.Required(CONF_PIN_B): cv.All(
-                pins.internal_gpio_input_pin_schema, pins.validate_has_interrupt
-            ),
+            cv.Required(CONF_PIN_A): cv.All(pins.internal_gpio_input_pin_schema),
+            cv.Required(CONF_PIN_B): cv.All(pins.internal_gpio_input_pin_schema),
             cv.Optional(CONF_PIN_RESET): pins.internal_gpio_output_pin_schema,
             cv.Optional(CONF_RESOLUTION, default=1): cv.enum(RESOLUTIONS, int=True),
             cv.Optional(CONF_MIN_VALUE): cv.int_,
             cv.Optional(CONF_MAX_VALUE): cv.int_,
+            cv.Optional(CONF_PUBLISH_INITIAL_VALUE, default=False): cv.boolean,
             cv.Optional(CONF_ON_CLOCKWISE): automation.validate_automation(
                 {
                     cv.GenerateID(CONF_TRIGGER_ID): cv.declare_id(
@@ -102,6 +101,7 @@ async def to_code(config):
     cg.add(var.set_pin_a(pin_a))
     pin_b = await cg.gpio_pin_expression(config[CONF_PIN_B])
     cg.add(var.set_pin_b(pin_b))
+    cg.add(var.set_publish_initial_value(config[CONF_PUBLISH_INITIAL_VALUE]))
 
     if CONF_PIN_RESET in config:
         pin_i = await cg.gpio_pin_expression(config[CONF_PIN_RESET])
